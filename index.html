@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Pulse - Transcript Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #0f3460;
+            --accent: #e94560;
+            --accent-light: #ff6b88;
+            --gold: #f7b731;
+            --bg: #f8f9fa;
+            --text: #2d3436;
+            --text-light: #636e72;
+            --border: #dfe6e9;
+            --success: #00b894;
+            --warning: #fdcb6e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #e8eef2 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='4' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
+            z-index: 9999;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 4rem 2rem 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(233, 69, 96, 0.2), transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+            animation: slideDown 0.8s ease-out 0.2s backwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin: -2rem auto 2rem;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--border);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, var(--accent-light) 0%, transparent 70%);
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone:hover::before {
+            width: 300px;
+            height: 300px;
+            opacity: 0.1;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .upload-hint {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .dashboard {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .dashboard.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-light);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        .chart-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 6px;
+            height: 40px;
+            background: linear-gradient(180deg, var(--accent), var(--gold));
+            border-radius: 3px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 1rem;
+        }
+
+        .course-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .course-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 1.5rem;
+            border-left: 4px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .course-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .course-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .course-code {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+        }
+
+        .course-credits {
+            text-align: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .credits-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .credits-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .course-grade {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            padding: 0.5rem 1.5rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.3);
+        }
+
+        .grade-a { background: linear-gradient(135deg, var(--success) 0%, #00d2a0 100%); }
+        .grade-b { background: linear-gradient(135deg, var(--gold) 0%, #ffd93d 100%); }
+        .grade-c { background: linear-gradient(135deg, var(--warning) 0%, #ffaa00 100%); }
+        .grade-d { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); }
+
+        .trend-indicator {
+            display: inline-block;
+            margin-left: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .sample-data-btn {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            margin-left: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .upload-section {
+                padding: 2rem;
+                margin: -1rem auto 2rem;
+            }
+
+            .course-item {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="grain-overlay"></div>
+    
+    <div class="hero">
+        <div class="hero-content">
+            <h1>Academic Pulse</h1>
+            <p class="subtitle">Transform your transcript into compelling visual insights</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="upload-section">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📊</div>
+                <div class="upload-text">Drop your transcript here</div>
+                <div class="upload-hint">Supports PDF and JSON files</div>
+                <input type="file" id="fileInput" accept=".json,.pdf">
+            </div>
+            <div style="text-align: center;">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <button class="btn sample-data-btn" onclick="loadSampleData()">
+                    Load Sample Data
+                </button>
+            </div>
+        </div>
+
+        <div id="stats" class="dashboard"></div>
+        
+        <div id="chartsContainer"></div>
+    </div>
+
+    <script>
+        let transcriptData = null;
+        let charts = [];
+
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // Expected JSON format example
+        const sampleTranscript = {
+            student: {
+                name: "Alex Rodriguez",
+                id: "20210456",
+                major: "Computer Science",
+                enrollment_date: "2021-09-01"
+            },
+            courses: [
+                { code: "CS101", name: "Intro to Programming", credits: 4, grade: "A", semester: "Fall 2021", gpa_points: 4.0 },
+                { code: "MATH201", name: "Calculus I", credits: 4, grade: "A-", semester: "Fall 2021", gpa_points: 3.7 },
+                { code: "ENG101", name: "English Composition", credits: 3, grade: "B+", semester: "Fall 2021", gpa_points: 3.3 },
+                { code: "CS102", name: "Data Structures", credits: 4, grade: "A", semester: "Spring 2022", gpa_points: 4.0 },
+                { code: "MATH202", name: "Calculus II", credits: 4, grade: "B+", semester: "Spring 2022", gpa_points: 3.3 },
+                { code: "PHYS101", name: "Physics I", credits: 4, grade: "B", semester: "Spring 2022", gpa_points: 3.0 },
+                { code: "CS201", name: "Algorithms", credits: 4, grade: "A", semester: "Fall 2022", gpa_points: 4.0 },
+                { code: "CS210", name: "Computer Architecture", credits: 3, grade: "A-", semester: "Fall 2022", gpa_points: 3.7 },
+                { code: "STAT301", name: "Probability & Statistics", credits: 3, grade: "B+", semester: "Fall 2022", gpa_points: 3.3 },
+                { code: "CS301", name: "Operating Systems", credits: 4, grade: "A", semester: "Spring 2023", gpa_points: 4.0 },
+                { code: "CS305", name: "Database Systems", credits: 3, grade: "A", semester: "Spring 2023", gpa_points: 4.0 },
+                { code: "CS315", name: "Software Engineering", credits: 3, grade: "A-", semester: "Spring 2023", gpa_points: 3.7 },
+                { code: "CS401", name: "Machine Learning", credits: 4, grade: "A", semester: "Fall 2023", gpa_points: 4.0 },
+                { code: "CS410", name: "Computer Networks", credits: 3, grade: "B+", semester: "Fall 2023", gpa_points: 3.3 },
+                { code: "CS420", name: "Security", credits: 3, grade: "A-", semester: "Fall 2023", gpa_points: 3.7 },
+                { code: "CS490", name: "Senior Project", credits: 4, grade: "A", semester: "Spring 2024", gpa_points: 4.0 }
+            ]
+        };
+
+        // File upload handling
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = 'var(--accent)';
+            uploadZone.style.background = 'white';
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.borderColor = 'var(--border)';
+            uploadZone.style.background = 'var(--bg)';
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = 'var(--border)';
+            uploadZone.style.background = 'var(--bg)';
+            
+            const file = e.dataTransfer.files[0];
+            if (file && (file.type === 'application/json' || file.type === 'application/pdf')) {
+                handleFile(file);
+            } else {
+                alert('Please upload a JSON or PDF file');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (file.type === 'application/pdf') {
+                handlePDF(file);
+            } else if (file.type === 'application/json') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        transcriptData = JSON.parse(e.target.result);
+                        visualizeData();
+                    } catch (error) {
+                        alert('Invalid JSON format. Please check your file.');
+                        console.error(error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        async function handlePDF(file) {
+            try {
+                console.log('=== STARTING PDF PROCESSING ===');
+                console.log('File name:', file.name);
+                console.log('File size:', file.size);
+                
+                // Show loading state
+                const uploadZone = document.getElementById('uploadZone');
+                uploadZone.innerHTML = `
+                    <div class="upload-icon">⏳</div>
+                    <div class="upload-text">Processing PDF...</div>
+                    <div class="upload-hint">Extracting transcript data</div>
+                `;
+
+                const arrayBuffer = await file.arrayBuffer();
+                console.log('Array buffer loaded, size:', arrayBuffer.byteLength);
+                
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                console.log('PDF loaded, pages:', pdf.numPages);
+                
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
+                    console.log(`Page ${i} text length:`, pageText.length);
+                }
+
+                console.log('Total extracted text length:', fullText.length);
+                console.log('First 500 chars:', fullText.substring(0, 500));
+
+                // Parse the extracted text
+                transcriptData = parseTranscriptText(fullText);
+                
+                // Reset upload zone
+                uploadZone.innerHTML = `
+                    <div class="upload-icon">📊</div>
+                    <div class="upload-text">Drop your transcript here</div>
+                    <div class="upload-hint">Supports PDF and JSON files</div>
+                    <input type="file" id="fileInput" accept=".json,.pdf">
+                `;
+                
+                // Re-attach event listeners
+                const newFileInput = document.getElementById('fileInput');
+                newFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) handleFile(file);
+                });
+                
+                console.log('=== VISUALIZING DATA ===');
+                visualizeData();
+            } catch (error) {
+                console.error('PDF Processing Error:', error);
+                alert('Error processing PDF. Please ensure it contains readable text. Check the browser console for details.');
+                
+                // Reset upload zone on error
+                const uploadZone = document.getElementById('uploadZone');
+                uploadZone.innerHTML = `
+                    <div class="upload-icon">📊</div>
+                    <div class="upload-text">Drop your transcript here</div>
+                    <div class="upload-hint">Supports PDF and JSON files</div>
+                    <input type="file" id="fileInput" accept=".json,.pdf">
+                `;
+            }
+        }
+
+        function parseTranscriptText(text) {
+            console.log('=== PARSING TRANSCRIPT ===');
+            console.log('Text length:', text.length);
+            
+            // Extract student info
+            let studentName = 'Student';
+            let studentId = '';
+            let major = '';
+            
+            const nameMatch = text.match(/Name:\s*([A-Za-z\s]+?)(?:SF State ID|Campus ID)/i);
+            if (nameMatch) {
+                studentName = nameMatch[1].trim();
+                console.log('Found name:', studentName);
+            }
+            
+            const idMatch = text.match(/SF State ID:\s*(\d+)/i);
+            if (idMatch) {
+                studentId = idMatch[1].trim();
+                console.log('Found ID:', studentId);
+            }
+            
+            const majorMatch = text.match(/Plan\s*:\s*([A-Za-z\s]+?)(?:Major)/i);
+            if (majorMatch) {
+                major = majorMatch[1].trim() + ' Major';
+                console.log('Found major:', major);
+            }
+
+            // Parse courses
+            const courses = [];
+            const gradeMap = {
+                'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+                'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+                'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+                'D+': 1.3, 'D': 1.0, 'D-': 0.7,
+                'F': 0.0
+            };
+
+            // Find all semester markers - more flexible pattern
+            const semesterMatches = [...text.matchAll(/(FA|SP|WI|SU)(\d{4})/g)];
+            console.log('Found semesters:', semesterMatches.length);
+            
+            for (let i = 0; i < semesterMatches.length; i++) {
+                const semMatch = semesterMatches[i];
+                const semCode = semMatch[1];
+                const year = semMatch[2];
+                const semesterStartIndex = semMatch.index;
+                const semesterEndIndex = i < semesterMatches.length - 1 ? 
+                    semesterMatches[i + 1].index : text.length;
+                
+                const semesterText = text.substring(semesterStartIndex, semesterEndIndex);
+                
+                // Convert semester code to readable format
+                let semesterName = '';
+                if (semCode === 'FA') semesterName = 'Fall ' + year;
+                else if (semCode === 'SP') semesterName = 'Spring ' + year;
+                else if (semCode === 'WI') semesterName = 'Winter ' + year;
+                else if (semCode === 'SU') semesterName = 'Summer ' + year;
+                
+                console.log('Processing:', semesterName);
+                console.log('Semester text sample:', semesterText.substring(0, 200));
+                
+                // More flexible pattern with \s+ to handle multiple spaces
+                // Pattern: DEPT NUM DESCRIPTION UNITS EARNED GRADE POINTS
+                // Using global flag and searching entire semester text
+                const coursePattern = /([A-Z]{2,4})\s+(\d{3})\s+([A-Z\s&:()'-]+?)\s+(\d+\.\d{2})\s+(\d+\.\d{2})\s+([A-F][+-]?)\s+(\d+\.\d{2})/g;
+                
+                let courseMatch;
+                let foundInSemester = 0;
+                
+                while ((courseMatch = coursePattern.exec(semesterText)) !== null) {
+                    const dept = courseMatch[1];
+                    const num = courseMatch[2];
+                    const desc = courseMatch[3].trim();
+                    const units = parseFloat(courseMatch[4]);
+                    const earned = parseFloat(courseMatch[5]);
+                    const grade = courseMatch[6];
+                    const points = parseFloat(courseMatch[7]);
+                    
+                    console.log(`Found course line: ${dept} ${num} ${desc} ${earned} ${grade}`);
+                    
+                    // Only include courses with earned credits > 0
+                    if (earned > 0 && grade.match(/^[A-F][+-]?$/)) {
+                        const course = {
+                            code: `${dept} ${num}`,
+                            name: desc,
+                            credits: earned,
+                            grade: grade,
+                            semester: semesterName,
+                            gpa_points: gradeMap[grade] || 0
+                        };
+                        courses.push(course);
+                        foundInSemester++;
+                        console.log('✓ Added course:', course.code, course.name, grade);
+                    } else {
+                        console.log('✗ Skipped (in progress):', dept, num, earned, grade);
+                    }
+                }
+                
+                console.log(`Found ${foundInSemester} courses in ${semesterName}`);
+            }
+
+            console.log('Total courses parsed:', courses.length);
+
+            if (courses.length === 0) {
+                console.error('No courses found in transcript');
+                alert('Could not parse transcript. The PDF may not contain readable text or is in an unexpected format. Showing sample data instead.');
+                return sampleTranscript;
+            }
+
+            const result = {
+                student: {
+                    name: studentName,
+                    id: studentId,
+                    major: major,
+                    enrollment_date: new Date().toISOString().split('T')[0]
+                },
+                courses: courses
+            };
+            
+            console.log('Parse complete:', result);
+            return result;
+        }
+
+        function loadSampleData() {
+            transcriptData = sampleTranscript;
+            visualizeData();
+        }
+
+        function calculateGPA(courses) {
+            let totalPoints = 0;
+            let totalCredits = 0;
+            courses.forEach(course => {
+                totalPoints += course.gpa_points * course.credits;
+                totalCredits += course.credits;
+            });
+            return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : 0;
+        }
+
+        function getGradeDistribution(courses) {
+            const distribution = {};
+            courses.forEach(course => {
+                const grade = course.grade;
+                distribution[grade] = (distribution[grade] || 0) + 1;
+            });
+            return distribution;
+        }
+
+        function getSemesterGPAs(courses) {
+            const semesters = {};
+            courses.forEach(course => {
+                if (!semesters[course.semester]) {
+                    semesters[course.semester] = { points: 0, credits: 0 };
+                }
+                semesters[course.semester].points += course.gpa_points * course.credits;
+                semesters[course.semester].credits += course.credits;
+            });
+            
+            const result = [];
+            Object.keys(semesters).sort().forEach(sem => {
+                const data = semesters[sem];
+                result.push({
+                    semester: sem,
+                    gpa: (data.points / data.credits).toFixed(2)
+                });
+            });
+            return result;
+        }
+
+        function getSubjectPerformance(courses) {
+            const subjects = {};
+            courses.forEach(course => {
+                const subject = course.code.match(/[A-Z]+/)[0];
+                if (!subjects[subject]) {
+                    subjects[subject] = { points: 0, credits: 0, count: 0 };
+                }
+                subjects[subject].points += course.gpa_points * course.credits;
+                subjects[subject].credits += course.credits;
+                subjects[subject].count += 1;
+            });
+            
+            return Object.entries(subjects).map(([subject, data]) => ({
+                subject,
+                avgGPA: (data.points / data.credits).toFixed(2),
+                courses: data.count
+            })).sort((a, b) => b.avgGPA - a.avgGPA);
+        }
+
+        function getGradeClass(grade) {
+            if (grade.startsWith('A')) return 'grade-a';
+            if (grade.startsWith('B')) return 'grade-b';
+            if (grade.startsWith('C')) return 'grade-c';
+            return 'grade-d';
+        }
+
+        function visualizeData() {
+            if (!transcriptData) return;
+
+            const courses = transcriptData.courses;
+            const gpa = calculateGPA(courses);
+            const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
+            const gradeDistribution = getGradeDistribution(courses);
+            const semesterGPAs = getSemesterGPAs(courses);
+            const subjectPerformance = getSubjectPerformance(courses);
+
+            // Calculate trend
+            const recentGPA = semesterGPAs.slice(-3).reduce((sum, s) => sum + parseFloat(s.gpa), 0) / Math.min(3, semesterGPAs.length);
+            const trend = recentGPA > parseFloat(gpa) ? '📈' : recentGPA < parseFloat(gpa) ? '📉' : '➡️';
+
+            // Display stats
+            const statsHTML = `
+                <div class="stat-card" style="animation-delay: 0s;">
+                    <div class="stat-label">Cumulative GPA</div>
+                    <div class="stat-value">${gpa}<span class="trend-indicator">${trend}</span></div>
+                    <div class="stat-subtitle">Out of 4.0 scale</div>
+                </div>
+                <div class="stat-card" style="animation-delay: 0.1s;">
+                    <div class="stat-label">Total Credits</div>
+                    <div class="stat-value">${totalCredits}</div>
+                    <div class="stat-subtitle">${courses.length} courses completed</div>
+                </div>
+                <div class="stat-card" style="animation-delay: 0.2s;">
+                    <div class="stat-label">Current Semester</div>
+                    <div class="stat-value">${semesterGPAs[semesterGPAs.length - 1]?.gpa || 'N/A'}</div>
+                    <div class="stat-subtitle">${semesterGPAs[semesterGPAs.length - 1]?.semester || ''}</div>
+                </div>
+            `;
+            
+            document.getElementById('stats').innerHTML = statsHTML;
+            document.getElementById('stats').classList.add('active');
+
+            // Clear previous charts
+            charts.forEach(chart => chart.destroy());
+            charts = [];
+
+            // Create charts container
+            const chartsContainer = document.getElementById('chartsContainer');
+            chartsContainer.innerHTML = `
+                <div class="chart-section" style="animation: fadeInUp 0.8s ease-out 0.5s backwards;">
+                    <h2 class="chart-title">GPA Progression</h2>
+                    <div class="chart-container">
+                        <canvas id="gpaChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-section" style="animation: fadeInUp 0.8s ease-out 0.6s backwards;">
+                    <h2 class="chart-title">Grade Distribution</h2>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-section" style="animation: fadeInUp 0.8s ease-out 0.7s backwards;">
+                    <h2 class="chart-title">Subject Performance</h2>
+                    <div class="chart-container">
+                        <canvas id="subjectChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-section" style="animation: fadeInUp 0.8s ease-out 0.8s backwards;">
+                    <h2 class="chart-title">Course History</h2>
+                    <div class="course-list">
+                        ${courses.map((course, index) => `
+                            <div class="course-item" style="animation: fadeInUp 0.5s ease-out ${0.9 + index * 0.05}s backwards;">
+                                <div class="course-info">
+                                    <h3>${course.name}</h3>
+                                    <div class="course-code">${course.code} • ${course.semester}</div>
+                                </div>
+                                <div class="course-credits">
+                                    <div class="credits-label">Credits</div>
+                                    <div class="credits-value">${course.credits}</div>
+                                </div>
+                                <div class="course-grade ${getGradeClass(course.grade)}">${course.grade}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // GPA Progression Line Chart
+            const gpaCtx = document.getElementById('gpaChart').getContext('2d');
+            charts.push(new Chart(gpaCtx, {
+                type: 'line',
+                data: {
+                    labels: semesterGPAs.map(s => s.semester),
+                    datasets: [{
+                        label: 'Semester GPA',
+                        data: semesterGPAs.map(s => s.gpa),
+                        borderColor: '#e94560',
+                        backgroundColor: 'rgba(233, 69, 96, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#e94560',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4.0,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            }));
+
+            // Grade Distribution Doughnut Chart
+            const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+            const gradeLabels = Object.keys(gradeDistribution);
+            const gradeColors = gradeLabels.map(grade => {
+                if (grade.startsWith('A')) return '#00b894';
+                if (grade.startsWith('B')) return '#f7b731';
+                if (grade.startsWith('C')) return '#fdcb6e';
+                return '#e94560';
+            });
+
+            charts.push(new Chart(gradeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: gradeLabels,
+                    datasets: [{
+                        data: Object.values(gradeDistribution),
+                        backgroundColor: gradeColors,
+                        borderWidth: 4,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: { size: 14, weight: '500' },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} courses (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+
+            // Subject Performance Bar Chart
+            const subjectCtx = document.getElementById('subjectChart').getContext('2d');
+            charts.push(new Chart(subjectCtx, {
+                type: 'bar',
+                data: {
+                    labels: subjectPerformance.map(s => s.subject),
+                    datasets: [{
+                        label: 'Average GPA',
+                        data: subjectPerformance.map(s => s.avgGPA),
+                        backgroundColor: 'rgba(233, 69, 96, 0.8)',
+                        borderColor: '#e94560',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const index = context.dataIndex;
+                                    return `${subjectPerformance[index].courses} courses`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4.0,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 12, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+    </script>
+</body>
+</html>

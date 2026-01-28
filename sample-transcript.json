@@ -1,0 +1,138 @@
+{
+  "student": {
+    "name": "Alex Rodriguez",
+    "id": "20210456",
+    "major": "Computer Science",
+    "enrollment_date": "2021-09-01"
+  },
+  "courses": [
+    {
+      "code": "CS101",
+      "name": "Intro to Programming",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Fall 2021",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "MATH201",
+      "name": "Calculus I",
+      "credits": 4,
+      "grade": "A-",
+      "semester": "Fall 2021",
+      "gpa_points": 3.7
+    },
+    {
+      "code": "ENG101",
+      "name": "English Composition",
+      "credits": 3,
+      "grade": "B+",
+      "semester": "Fall 2021",
+      "gpa_points": 3.3
+    },
+    {
+      "code": "CS102",
+      "name": "Data Structures",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Spring 2022",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "MATH202",
+      "name": "Calculus II",
+      "credits": 4,
+      "grade": "B+",
+      "semester": "Spring 2022",
+      "gpa_points": 3.3
+    },
+    {
+      "code": "PHYS101",
+      "name": "Physics I",
+      "credits": 4,
+      "grade": "B",
+      "semester": "Spring 2022",
+      "gpa_points": 3.0
+    },
+    {
+      "code": "CS201",
+      "name": "Algorithms",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Fall 2022",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "CS210",
+      "name": "Computer Architecture",
+      "credits": 3,
+      "grade": "A-",
+      "semester": "Fall 2022",
+      "gpa_points": 3.7
+    },
+    {
+      "code": "STAT301",
+      "name": "Probability & Statistics",
+      "credits": 3,
+      "grade": "B+",
+      "semester": "Fall 2022",
+      "gpa_points": 3.3
+    },
+    {
+      "code": "CS301",
+      "name": "Operating Systems",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Spring 2023",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "CS305",
+      "name": "Database Systems",
+      "credits": 3,
+      "grade": "A",
+      "semester": "Spring 2023",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "CS315",
+      "name": "Software Engineering",
+      "credits": 3,
+      "grade": "A-",
+      "semester": "Spring 2023",
+      "gpa_points": 3.7
+    },
+    {
+      "code": "CS401",
+      "name": "Machine Learning",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Fall 2023",
+      "gpa_points": 4.0
+    },
+    {
+      "code": "CS410",
+      "name": "Computer Networks",
+      "credits": 3,
+      "grade": "B+",
+      "semester": "Fall 2023",
+      "gpa_points": 3.3
+    },
+    {
+      "code": "CS420",
+      "name": "Security",
+      "credits": 3,
+      "grade": "A-",
+      "semester": "Fall 2023",
+      "gpa_points": 3.7
+    },
+    {
+      "code": "CS490",
+      "name": "Senior Project",
+      "credits": 4,
+      "grade": "A",
+      "semester": "Spring 2024",
+      "gpa_points": 4.0
+    }
+  ]
+}
